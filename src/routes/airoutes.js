@@ -12,4 +12,14 @@ router.post("/ask", async (req, res) => {
     res.json({ response });
 });
 
+router.post("/query", async (req, res) => {
+    const { query } = req.body;
+    const userId = req.userid;
+
+    const response = await askAI(query, userId);
+
+    res.json({ response });
+});
+
+
 export default router;
