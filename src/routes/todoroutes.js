@@ -1,5 +1,6 @@
 import express from 'express'
 import { addTaskToVectorDB } from "../services/embedding.service.js";
+import { categorizeTask, suggestTasks } from "../aiService.js"
 
 import prisma from '../prismaClient.js'
 
