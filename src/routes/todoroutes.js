@@ -1,6 +1,6 @@
 import express from 'express';
 import { addTaskToVectorDB } from "../services/embedding.service.js";
-import { categorizeTask, suggestTasks } from "../aiService.js";
+import { categorizeTask, suggestTasks } from "../services/ai.service.js";
 import prisma from '../prismaClient.js';
 
 const router = express.Router();
@@ -23,11 +23,12 @@ router.get('/', async (req, res) => {
 // 🔹 CREATE todo
 router.post('/', async (req, res) => {
   try {
-    const { task } = req.body;
+    const { task, dueDate } = req.body;
 
     const todo = await prisma.todo.create({
       data: {
         task,
+        dueDate: dueDate ? new Date(dueDate) : null,
         userid: req.userid
       }
     });

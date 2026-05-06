@@ -8,8 +8,18 @@ import todoroutes from './routes/todoroutes.js';
 import authmiddleware from './middleware/authmiddleware.js';
 import aiRoutes from "./routes/airoutes.js";
 
+import cors from "cors";
 
 const app = express();
+
+app.use(cors({
+    origin: ["http://127.0.0.1:5500", "http://localhost:5500"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
+app.use(express.json());
 
 const PORT = process.env.PORT || 5003;
 
@@ -32,6 +42,7 @@ app.use(express.static("public"));
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../public', 'index.html'));
 });
+
 
 // auth routes
 app.use('/auth', authroutes);

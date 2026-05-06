@@ -1,6 +1,6 @@
-const API_URL = 'http://localhost:5003';
+const API_URL = 'http://127.0.0.1:5003';
 
-// DOM Elements
+// ================= DOM ELEMENTS =================
 const authOverlay = document.getElementById('auth-overlay');
 const registerOverlay = document.getElementById('register-overlay');
 const appContainer = document.getElementById('app-container');
@@ -23,12 +23,42 @@ const chatForm = document.getElementById('chat-form');
 const chatInput = document.getElementById('chat-input');
 const chatMessages = document.getElementById('chat-messages');
 
-// State
+// Navigation Tabs
+const navItems = document.querySelectorAll('.nav-item');
+const viewPanels = document.querySelectorAll('.view-panel');
+
+navItems.forEach(item => {
+  item.addEventListener('click', (e) => {
+    e.preventDefault();
+    const targetView = item.getAttribute('data-view');
+    
+    // Update active nav
+    navItems.forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    
+    // Update active view
+    viewPanels.forEach(panel => {
+      if (panel.id === targetView) {
+        panel.classList.remove('hidden');
+      } else {
+        panel.classList.add('hidden');
+      }
+    });
+
+    if (targetView === 'view-calendar') {
+      setTimeout(renderCalendar, 50);
+    }
+  });
+});
+
+// ================= STATE =================
 let token = localStorage.getItem('token');
 let currentUser = localStorage.getItem('username');
 
-// Initialize
+// ================= INIT =================
 function init() {
+  console.log("Token on load =", token);
+
   if (token) {
     showApp();
     fetchTodos();
@@ -37,7 +67,360 @@ function init() {
   }
 }
 
-// UI State Management
+// ================= API HELPER =================
+async function apiCall(endpoint, method = 'GET', body = null) {
+  const headers = {
+    'Content-Type': 'application/json'
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  console.log("API CALL:", endpoint, "TOKEN:", token);
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : null
+  });
+
+  if (response.status === 401 || response.status === 403) {
+    console.log("Auth failed → clearing token");
+    localStorage.removeItem('token');
+    token = null;
+    showLogin();
+    throw new Error('Unauthorized');
+  }
+
+  let data = {};
+  try {
+    data = await response.json();
+  } catch { }
+
+  if (!response.ok) {
+    console.error("API ERROR:", data);
+    throw new Error(data.error || 'API failed');
+  }
+
+  return data;
+}
+
+// ================= AUTH =================
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+
+  try {
+    const res = await apiCall('/auth/login', 'POST', { username, password });
+
+    token = res.token;
+    currentUser = username;
+
+    localStorage.setItem('token', token);
+    localStorage.setItem('username', username);
+
+    console.log("Logged in. Token =", token);
+
+    showApp();
+    fetchTodos();
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+registerForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const username = document.getElementById('reg-username').value;
+  const password = document.getElementById('reg-password').value;
+
+  try {
+    await apiCall('/auth/register', 'POST', { username, password });
+    alert('Registered! Now login.');
+    showLogin();
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+// UI Toggles
+const themeToggle = document.getElementById('theme-toggle');
+if (themeToggle) {
+  themeToggle.addEventListener('change', (e) => {
+    if (e.target.checked) {
+      document.body.classList.add('dark-mode');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.body.classList.remove('dark-mode');
+      localStorage.setItem('theme', 'light');
+    }
+  });
+  
+  if (localStorage.getItem('theme') === 'dark') {
+    themeToggle.checked = true;
+    document.body.classList.add('dark-mode');
+  }
+}
+
+document.getElementById('show-register').addEventListener('click', (e) => {
+  e.preventDefault();
+  showRegister();
+});
+
+document.getElementById('show-login').addEventListener('click', (e) => {
+  e.preventDefault();
+  showLogin();
+});
+
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', () => {
+    localStorage.clear();
+    token = null;
+    currentUser = null;
+    showLogin();
+  });
+}
+// ================= TODOS =================
+async function fetchTodos() {
+  tasksLoading.classList.remove('hidden');
+  tasksList.innerHTML = '';
+
+  try {
+    const todos = await apiCall('/todos');
+    renderTodos(todos);
+  } catch (err) {
+    console.error("Fetch todos error:", err);
+  } finally {
+    tasksLoading.classList.add('hidden');
+  }
+}
+
+function renderTodos(todos) {
+  tasksList.innerHTML = '';
+
+  // Update Analytics
+  const statTotal = document.getElementById('stat-total');
+  const statCompleted = document.getElementById('stat-completed');
+  const statPending = document.getElementById('stat-pending');
+  if (statTotal) statTotal.textContent = todos.length;
+  if (statCompleted) statCompleted.textContent = todos.filter(t => t.completed).length;
+  if (statPending) statPending.textContent = todos.filter(t => !t.completed).length;
+
+  // Update Settings Profile
+  const settingsUser = document.getElementById('settings-username');
+  if (settingsUser && currentUser) settingsUser.textContent = currentUser;
+
+  if (!todos.length) {
+    tasksEmpty.classList.remove('hidden');
+    return;
+  }
+
+  tasksEmpty.classList.add('hidden');
+
+  todos.forEach(todo => {
+    const li = document.createElement('li');
+    li.className = `task-item ${todo.completed ? 'completed' : ''}`;
+
+    li.innerHTML = `
+      <div class="task-content">
+        <div class="task-checkbox" onclick="toggleTask(${todo.id}, ${!todo.completed})">
+          ${todo.completed ? '<i class="fa-solid fa-check"></i>' : ''}
+        </div>
+        <span class="task-text">${escapeHtml(todo.task)}</span>
+        <span class="task-tag hidden" id="tag-${todo.id}"></span>
+      </div>
+
+      <div class="task-actions">
+        <button class="action-btn" onclick="addToCalendar('${escapeHtml(todo.task).replace(/'/g, "\\'")}')" title="Add to Google Calendar">
+          <i class="fa-regular fa-calendar-plus"></i>
+        </button>
+        <button class="action-btn" onclick="categorizeTask(${todo.id}, '${escapeHtml(todo.task).replace(/'/g, "\\'")}')" title="Categorize Task">
+          <i class="fa-solid fa-tag"></i>
+        </button>
+        <button class="action-btn delete-btn" onclick="deleteTask(${todo.id})" title="Delete Task">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+    `;
+
+    tasksList.appendChild(li);
+  });
+  
+  if (document.getElementById('view-calendar') && !document.getElementById('view-calendar').classList.contains('hidden')) {
+    setTimeout(renderCalendar, 10);
+  }
+}
+
+let calendar = null;
+function renderCalendar() {
+  const calendarEl = document.getElementById('calendar');
+  if (!calendarEl) return;
+
+  const events = todos
+    .filter(t => t.dueDate)
+    .map(t => ({
+      id: t.id.toString(),
+      title: t.task,
+      start: t.dueDate,
+      allDay: true,
+      color: t.completed ? '#10b981' : 'var(--accent)'
+    }));
+
+  if (!calendar) {
+    calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      events: events,
+      headerToolbar: { left: 'prev,next', center: 'title', right: 'today' },
+      height: '100%',
+      eventClick: function(info) {
+        if(confirm("Mark this task as completed?")) {
+           toggleTask(parseInt(info.event.id), true);
+        }
+      }
+    });
+    calendar.render();
+  } else {
+    calendar.removeAllEvents();
+    calendar.addEventSource(events);
+  }
+}
+
+addTaskForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const task = newTaskInput.value.trim();
+  const dateInput = document.getElementById('new-task-date');
+  const dueDate = dateInput && dateInput.value ? new Date(dateInput.value).toISOString() : null;
+
+  if (!task) return;
+
+  try {
+    await apiCall('/todos', 'POST', { task, dueDate });
+    newTaskInput.value = '';
+    if (dateInput) dateInput.value = '';
+    fetchTodos();
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+async function toggleTask(id, completed) {
+  try {
+    await apiCall(`/todos/${id}`, 'PUT', { completed });
+    fetchTodos();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function deleteTask(id) {
+  if (!confirm("Delete this task?")) return;
+
+  try {
+    await apiCall(`/todos/${id}`, 'DELETE');
+    fetchTodos();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+window.addToCalendar = function(taskName) {
+  const text = encodeURIComponent(taskName);
+  const details = encodeURIComponent("Added from TaskMind AI");
+  const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&details=${details}`;
+  window.open(url, '_blank');
+};
+
+// ================= AI =================
+
+// Categorize
+async function categorizeTask(id, taskText) {
+  const tagEl = document.getElementById(`tag-${id}`);
+
+  if (tagEl) {
+    tagEl.classList.remove('hidden');
+    tagEl.textContent = '...';
+  }
+
+  try {
+    const res = await apiCall('/todos/ai/categorize', 'POST', {
+      task: taskText
+    });
+
+    if (tagEl) {
+      tagEl.textContent = res.tag;
+    }
+  } catch {
+    if (tagEl) tagEl.classList.add('hidden');
+  }
+}
+
+// Suggestions
+aiSuggestBtn.addEventListener('click', async () => {
+  try {
+    const res = await apiCall('/todos/ai/suggest');
+    renderSuggestions(res.suggestions || []);
+  } catch {
+    alert("AI failed");
+  }
+});
+
+function renderSuggestions(suggestions) {
+  suggestionsContainer.classList.remove('hidden');
+  suggestionsList.innerHTML = '';
+
+  suggestions.forEach(s => {
+    const btn = document.createElement('button');
+    btn.textContent = '+ ' + s;
+
+    btn.onclick = () => {
+      newTaskInput.value = s;
+    };
+
+    suggestionsList.appendChild(btn);
+  });
+}
+
+// ================= CHAT =================
+chatForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const query = chatInput.value.trim();
+  if (!query) return;
+
+  appendMessage('user', query);
+  chatInput.value = '';
+
+  try {
+    const res = await apiCall('/api/ai/query', 'POST', { query });
+
+    appendMessage('ai', res.response || "No response");
+  } catch {
+    appendMessage('ai', "AI error");
+  }
+});
+
+function appendMessage(sender, text) {
+  const div = document.createElement('div');
+  div.className = `message ${sender}-message`;
+  div.innerHTML = `<div class="message-bubble">${text}</div>`;
+
+  chatMessages.appendChild(div);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// ================= UTILS =================
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+// ================= UI =================
 function showLogin() {
   authOverlay.classList.remove('hidden');
   registerOverlay.classList.add('hidden');
@@ -54,291 +437,11 @@ function showApp() {
   authOverlay.classList.add('hidden');
   registerOverlay.classList.add('hidden');
   appContainer.classList.remove('hidden');
+
   if (currentUser) {
     displayUsername.textContent = currentUser;
   }
 }
 
-document.getElementById('show-register').addEventListener('click', (e) => {
-  e.preventDefault();
-  showRegister();
-});
-
-document.getElementById('show-login').addEventListener('click', (e) => {
-  e.preventDefault();
-  showLogin();
-});
-
-logoutBtn.addEventListener('click', () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('username');
-  token = null;
-  currentUser = null;
-  showLogin();
-});
-
-// Fetch Helpers
-async function apiCall(endpoint, method = 'GET', body = null) {
-  const headers = { 'Content-Type': 'application/json' };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const options = { method, headers };
-  if (body) {
-    options.body = JSON.stringify(body);
-  }
-
-  const response = await fetch(`${API_URL}${endpoint}`, options);
-  
-  if (response.status === 401 || response.status === 403) {
-    localStorage.removeItem('token');
-    token = null;
-    showLogin();
-    throw new Error('Unauthorized');
-  }
-  
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error || 'API call failed');
-  }
-
-  return response.json();
-}
-
-// Auth Actions
-loginForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const username = document.getElementById('username').value;
-  const password = document.getElementById('password').value;
-
-  try {
-    const res = await apiCall('/auth/login', 'POST', { username, password });
-    token = res.token;
-    currentUser = username;
-    localStorage.setItem('token', token);
-    localStorage.setItem('username', username);
-    loginForm.reset();
-    showApp();
-    fetchTodos();
-  } catch (err) {
-    alert(err.message);
-  }
-});
-
-registerForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const username = document.getElementById('reg-username').value;
-  const password = document.getElementById('reg-password').value;
-
-  try {
-    await apiCall('/auth/register', 'POST', { username, password });
-    alert('Registration successful! Please log in.');
-    showLogin();
-  } catch (err) {
-    alert(err.message);
-  }
-});
-
-// Tasks Actions
-async function fetchTodos() {
-  tasksLoading.classList.remove('hidden');
-  tasksList.innerHTML = '';
-  tasksEmpty.classList.add('hidden');
-
-  try {
-    const todos = await apiCall('/todos');
-    renderTodos(todos);
-  } catch (err) {
-    console.error(err);
-  } finally {
-    tasksLoading.classList.add('hidden');
-  }
-}
-
-function renderTodos(todos) {
-  tasksList.innerHTML = '';
-  
-  if (todos.length === 0) {
-    tasksEmpty.classList.remove('hidden');
-    return;
-  }
-  
-  tasksEmpty.classList.add('hidden');
-
-  todos.forEach(todo => {
-    const li = document.createElement('li');
-    li.className = `task-item ${todo.completed ? 'completed' : ''}`;
-    li.dataset.id = todo.id;
-
-    // Use a placeholder tag if none exists (since DB schema doesn't have tag, we store it in UI dynamically or just leave blank)
-    const tagHtml = todo.tag ? `<span class="task-tag">${todo.tag}</span>` : `<span class="task-tag hidden" id="tag-${todo.id}"></span>`;
-
-    li.innerHTML = `
-      <div class="task-content">
-        <div class="task-checkbox" onclick="toggleTask(${todo.id}, ${!todo.completed})">
-          ${todo.completed ? '<i class="fa-solid fa-check"></i>' : ''}
-        </div>
-        <span class="task-text">${escapeHtml(todo.task)}</span>
-        ${tagHtml}
-      </div>
-      <div class="task-actions">
-        <button class="action-btn" onclick="categorizeTask(${todo.id}, '${escapeHtml(todo.task).replace(/'/g, "\\'")}')" title="Categorize with AI">
-          <i class="fa-solid fa-tags"></i>
-        </button>
-        <button class="action-btn delete-btn" onclick="deleteTask(${todo.id})" title="Delete">
-          <i class="fa-solid fa-trash"></i>
-        </button>
-      </div>
-    `;
-    tasksList.appendChild(li);
-  });
-}
-
-addTaskForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const taskText = newTaskInput.value.trim();
-  if (!taskText) return;
-
-  newTaskInput.disabled = true;
-  try {
-    await apiCall('/todos', 'POST', { task: taskText });
-    newTaskInput.value = '';
-    fetchTodos();
-  } catch (err) {
-    alert(err.message);
-  } finally {
-    newTaskInput.disabled = false;
-    newTaskInput.focus();
-  }
-});
-
-async function toggleTask(id, completed) {
-  try {
-    await apiCall(`/todos/${id}`, 'PUT', { completed });
-    fetchTodos();
-  } catch (err) {
-    alert(err.message);
-  }
-}
-
-async function deleteTask(id) {
-  if (!confirm('Are you sure you want to delete this task?')) return;
-  try {
-    await apiCall(`/todos/${id}`, 'DELETE');
-    fetchTodos();
-  } catch (err) {
-    alert(err.message);
-  }
-}
-
-// AI Tasks Features
-async function categorizeTask(id, taskText) {
-  const tagEl = document.getElementById(`tag-${id}`);
-  if (tagEl) {
-    tagEl.classList.remove('hidden');
-    tagEl.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
-  }
-  
-  try {
-    const res = await apiCall('/todos/ai/categorize', 'POST', { task: taskText });
-    if (tagEl && res.tag) {
-      tagEl.textContent = res.tag;
-    }
-  } catch (err) {
-    console.error(err);
-    if (tagEl) tagEl.classList.add('hidden');
-  }
-}
-
-aiSuggestBtn.addEventListener('click', async () => {
-  aiSuggestBtn.disabled = true;
-  aiSuggestBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Thinking...';
-  
-  try {
-    const res = await apiCall('/todos/ai/suggest');
-    renderSuggestions(res.suggestions || res.tasks || []);
-  } catch (err) {
-    console.error(err);
-    alert('Failed to get suggestions');
-  } finally {
-    aiSuggestBtn.disabled = false;
-    aiSuggestBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> AI Suggest Tasks';
-  }
-});
-
-function renderSuggestions(suggestions) {
-  if (!suggestions || suggestions.length === 0) return;
-  
-  suggestionsContainer.classList.remove('hidden');
-  suggestionsList.innerHTML = '';
-  
-  suggestions.forEach(suggestion => {
-    const btn = document.createElement('button');
-    btn.className = 'suggestion-chip';
-    btn.textContent = '+ ' + suggestion;
-    btn.onclick = () => {
-      newTaskInput.value = suggestion;
-      newTaskInput.focus();
-    };
-    suggestionsList.appendChild(btn);
-  });
-}
-
-// AI Chat Feature
-chatForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const query = chatInput.value.trim();
-  if (!query) return;
-
-  // Add user message
-  appendMessage('user', query);
-  chatInput.value = '';
-  chatInput.disabled = true;
-
-  // Add loading placeholder
-  const loadingId = 'loading-' + Date.now();
-  appendMessage('ai', '<i class="fa-solid fa-ellipsis fa-fade"></i>', loadingId);
-
-  try {
-    const res = await apiCall('/api/ai/query', 'POST', { query });
-    
-    // Remove loading and add response
-    document.getElementById(loadingId)?.remove();
-    appendMessage('ai', res.response || 'Sorry, I could not process that.');
-  } catch (err) {
-    document.getElementById(loadingId)?.remove();
-    appendMessage('ai', 'Error connecting to AI service.');
-  } finally {
-    chatInput.disabled = false;
-    chatInput.focus();
-  }
-});
-
-function appendMessage(sender, text, id = null) {
-  const msgDiv = document.createElement('div');
-  msgDiv.className = `message ${sender}-message`;
-  if (id) msgDiv.id = id;
-  
-  msgDiv.innerHTML = `
-    <div class="message-bubble">
-      ${sender === 'user' ? escapeHtml(text) : text}
-    </div>
-  `;
-  
-  chatMessages.appendChild(msgDiv);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-// Utils
-function escapeHtml(unsafe) {
-  return unsafe
-       .replace(/&/g, "&amp;")
-       .replace(/</g, "&lt;")
-       .replace(/>/g, "&gt;")
-       .replace(/"/g, "&quot;")
-       .replace(/'/g, "&#039;");
-}
-
-// Start app
+// ================= START =================
 init();

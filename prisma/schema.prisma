@@ -10,7 +10,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -25,6 +25,7 @@ model Todo{
   id        Int       @id @default(autoincrement())
   task      String
   completed Boolean   @default(false)
+  dueDate   DateTime?
   userid    Int 
   user      User      @relation(fields: [userid], references: [id])
 }

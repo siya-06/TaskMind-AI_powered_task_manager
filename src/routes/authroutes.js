@@ -1,87 +1,95 @@
-import express from 'express'
-import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import prisma from '../prismaClient.js';
 
-import prisma from '../prismaClient.js'
+const router = express.Router();
 
-const router = express.Router()
+// ================= REGISTER =================
+router.post('/register', async (req, res) => {
+  try {
+    const { username, password } = req.body;
 
-//register a new user endpoint /auth/register
-router.post('/register',async(req,res) =>{
- const {username,password} = req.body
- const hashpassword =bcrypt.hashSync(password, 8)
-
- //save the new user and hashed password to the db
- //prepare method allows to inject values in sql query 
- // whereas exec is to run queries
- try{
-   const user= await prisma.user.create({
-     data:{
-      username,
-      password: hashpassword
-     }
-   })
-
-   //we have one user now , to add their first todo 
-   const defaulttodo= `hello add ur 1st todo`
-   await prisma.todo.create({
-    data:{
-      task: defaulttodo,
-      userid: user.id
+    // 🔒 basic validation
+    if (!username || !password) {
+      return res.status(400).json({ error: "Username and password required" });
     }
-   })
-    
 
-    //create a token 
-    const token=jwt.sign({id: user.id}, process.env.JWT_SECRET,
-    {expiresIn:'24h'})
-    res.json({ token})
+    const hashedPassword = bcrypt.hashSync(password, 8);
 
+    const user = await prisma.user.create({
+      data: {
+        username,
+        password: hashedPassword
+      }
+    });
 
+    // optional default todo
+    await prisma.todo.create({
+      data: {
+        task: "Add your first task 🚀",
+        userid: user.id
+      }
+    });
+
+    const token = jwt.sign(
+      { id: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({ token });
+
+  } catch (err) {
+    console.error(err);
+
+    // 🔥 Prisma duplicate username
+    if (err.code === "P2002") {
+      return res.status(400).json({
+        error: "User already exists. Please login."
+      });
+    }
+
+    res.status(500).json({ error: "Registration failed" });
   }
-  catch(err){
-    console.log(err.message)
-    if (err.code === "P2002") {  // Prisma duplicate key error
-        return res.status(400).json({ error: "User already exists. Please log in." })
+});
+
+// ================= LOGIN =================
+router.post('/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    // 🔒 validation
+    if (!username || !password) {
+      return res.status(400).json({ error: "Username and password required" });
     }
-    res.status(400).json({ error: "Failed to register." })
-}
 
+    const user = await prisma.user.findUnique({
+      where: { username }
+    });
 
- 
-})
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
-router.post('/login',async (req,res) =>{
- const {username, password} = req.body
- try{
-  const user=await prisma.user.findUnique({
+    const isValid = bcrypt.compareSync(password, user.password);
 
-   where:{
-   username: username
-   }
+    if (!isValid) {
+      return res.status(401).json({ error: "Invalid password" });
+    }
 
-  })
+    const token = jwt.sign(
+      { id: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
 
+    res.json({ token });
 
-   if(!user ){
-    return res.status(404).send({message:"user not found"})
-   }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Login failed" });
+  }
+});
 
-   const passwordisvalid =bcrypt.compareSync(password,user.password)//returns in boolean
-   if(!passwordisvalid) { return res.status(401).send({message:
-    "invalid password"}) }
-    console.log(user)
-    // succesfull auth 
-
-    const token = jwt.sign({id: user.id},process.env.JWT_SECRET , 
-    {expiresIn: '24h'})
-    res.json({token})
-}catch(err){
-    console.log(err.message)
-    res.sendStatus(503)
-}
-})
-
-
-
-export default router
+export default router;

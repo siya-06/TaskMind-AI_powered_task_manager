@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 </head>
 <body>
 
@@ -58,10 +59,10 @@
       </div>
       
       <nav class="nav-menu">
-        <a href="#" class="nav-item active"><i class="fa-solid fa-check-square"></i> Tasks</a>
-        <a href="#" class="nav-item"><i class="fa-solid fa-calendar-alt"></i> Calendar</a>
-        <a href="#" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Analytics</a>
-        <a href="#" class="nav-item"><i class="fa-solid fa-cog"></i> Settings</a>
+        <a href="#" class="nav-item active" data-view="view-tasks"><i class="fa-solid fa-check-square"></i> Tasks</a>
+        <a href="#" class="nav-item" data-view="view-calendar"><i class="fa-solid fa-calendar-alt"></i> Calendar</a>
+        <a href="#" class="nav-item" data-view="view-analytics"><i class="fa-solid fa-chart-pie"></i> Analytics</a>
+        <a href="#" class="nav-item" data-view="view-settings"><i class="fa-solid fa-cog"></i> Settings</a>
       </nav>
 
       <div class="sidebar-footer">
@@ -75,40 +76,96 @@
 
     <!-- Main Panel -->
     <main class="main-panel">
-      <header class="main-header">
-        <h1>My Tasks</h1>
-        <div class="ai-suggest-btn-container">
-          <button id="ai-suggest-btn" class="btn btn-secondary"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Suggest Tasks</button>
-        </div>
-      </header>
-      
-      <div id="suggestions-container" class="suggestions-container hidden">
-        <h3>Suggested for you</h3>
-        <div id="suggestions-list" class="suggestions-list"></div>
-      </div>
-
-      <div class="add-task-container">
-        <form id="add-task-form">
-          <div class="input-group">
-            <i class="fa-solid fa-plus"></i>
-            <input type="text" id="new-task-input" placeholder="What needs to be done?" autocomplete="off" required>
+      <!-- TASKS VIEW -->
+      <div id="view-tasks" class="view-panel active">
+        <header class="main-header">
+          <h1>My Tasks</h1>
+          <div class="ai-suggest-btn-container">
+            <button id="ai-suggest-btn" class="btn btn-secondary"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Suggest Tasks</button>
           </div>
-          <button type="submit" class="btn btn-primary hidden-btn">Add</button>
-        </form>
+        </header>
+        
+        <div id="suggestions-container" class="suggestions-container hidden">
+          <h3>Suggested for you</h3>
+          <div id="suggestions-list" class="suggestions-list"></div>
+        </div>
+
+        <div class="add-task-container">
+          <form id="add-task-form">
+            <div class="input-group">
+              <i class="fa-solid fa-plus"></i>
+              <input type="text" id="new-task-input" placeholder="What needs to be done?" autocomplete="off" required>
+              <input type="date" id="new-task-date" class="date-input" title="Due Date">
+            </div>
+            <button type="submit" class="btn btn-primary hidden-btn">Add</button>
+          </form>
+        </div>
+
+        <div class="tasks-list-container">
+          <div id="tasks-loading" class="loading-state hidden">
+            <i class="fa-solid fa-circle-notch fa-spin"></i> Loading tasks...
+          </div>
+          <div id="tasks-empty" class="empty-state hidden">
+            <div class="empty-icon"><i class="fa-solid fa-clipboard-list"></i></div>
+            <h3>No tasks yet</h3>
+            <p>Add a task above or ask AI for suggestions.</p>
+          </div>
+          <ul id="tasks-list" class="tasks-list">
+            <!-- Tasks will be injected here -->
+          </ul>
+        </div>
       </div>
 
-      <div class="tasks-list-container">
-        <div id="tasks-loading" class="loading-state hidden">
-          <i class="fa-solid fa-circle-notch fa-spin"></i> Loading tasks...
+      <!-- CALENDAR VIEW -->
+      <div id="view-calendar" class="view-panel hidden">
+        <header class="main-header">
+          <h1>Calendar</h1>
+        </header>
+        <div id="calendar" style="flex: 1; padding: 20px; background: var(--panel-bg); border-radius: var(--radius); margin-top: 10px;"></div>
+      </div>
+
+      <!-- ANALYTICS VIEW -->
+      <div id="view-analytics" class="view-panel hidden">
+        <header class="main-header">
+          <h1>Analytics</h1>
+        </header>
+        <div class="analytics-grid">
+           <div class="stat-card">
+              <div class="stat-icon" style="color: var(--accent); background: #eef2ff;"><i class="fa-solid fa-list-check"></i></div>
+              <h3>Total Tasks</h3>
+              <p id="stat-total" class="stat-number">0</p>
+           </div>
+           <div class="stat-card">
+              <div class="stat-icon" style="color: #10b981; background: #d1fae5;"><i class="fa-solid fa-check"></i></div>
+              <h3>Completed</h3>
+              <p id="stat-completed" class="stat-number">0</p>
+           </div>
+           <div class="stat-card">
+              <div class="stat-icon" style="color: #f59e0b; background: #fef3c7;"><i class="fa-solid fa-clock"></i></div>
+              <h3>Pending</h3>
+              <p id="stat-pending" class="stat-number">0</p>
+           </div>
         </div>
-        <div id="tasks-empty" class="empty-state hidden">
-          <div class="empty-icon"><i class="fa-solid fa-clipboard-list"></i></div>
-          <h3>No tasks yet</h3>
-          <p>Add a task above or ask AI for suggestions.</p>
+      </div>
+
+      <!-- SETTINGS VIEW -->
+      <div id="view-settings" class="view-panel hidden">
+        <header class="main-header">
+          <h1>Settings</h1>
+        </header>
+        <div class="settings-container">
+           <div class="settings-card">
+             <h3>Account Details</h3>
+             <p class="settings-row"><span>Username</span> <strong id="settings-username">User</strong></p>
+           </div>
+           <div class="settings-card">
+             <h3>Preferences</h3>
+             <div class="settings-row">
+               <span>Dark Mode</span>
+               <label class="switch"><input type="checkbox" id="theme-toggle"><span class="slider round"></span></label>
+             </div>
+           </div>
         </div>
-        <ul id="tasks-list" class="tasks-list">
-          <!-- Tasks will be injected here -->
-        </ul>
       </div>
     </main>
 

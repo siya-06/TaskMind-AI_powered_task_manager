@@ -1,13 +1,21 @@
 import axios from "axios";
 
-export const addTaskToVectorDB = async (task) => {
-    await axios.post("http://localhost:8001/add", task);
+const AI_BASE = "http://127.0.0.1:8000";
+
+export const addTaskToVectorDB = async (data) => {
+    try {
+        await axios.post(`${AI_BASE}/add`, data);
+    } catch (err) {
+        console.error("Vector DB Add Error:", err.message);
+    }
 };
 
 export const queryVectorDB = async (query, userId) => {
-    const res = await axios.post("http://localhost:8001/query", {
-        query,
-        userId
-    });
-    return res.data.results;
+    try {
+        const res = await axios.post(`${AI_BASE}/query`, { query, userId }, { timeout: 3000 });
+        return res.data.results || [];
+    } catch (err) {
+        console.error("Vector DB Query Error:", err.message);
+        return [];
+    }
 };
