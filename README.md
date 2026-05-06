@@ -44,13 +44,6 @@ Frontend → Node.js Backend → Python AI Service → FAISS Vector DB
 5. Response generated using retrieved context
 
 ---
-
-## 🚀 Running Locally
-
-### 1. Backend
-
-```bash
-
 npm install
 npm start
 <img width="1919" height="965" alt="image" src="https://github.com/user-attachments/assets/f33c8b53-1b8e-4b78-83f8-3df06757ac20" />
