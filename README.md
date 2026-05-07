@@ -394,10 +394,7 @@ Some things I still want to add:
 Built by Siya ✨
 
 If you made it this far into the README, thank you genuinely 😭
-<img width="1919" height="908" alt="Screenshot 2026-05-07 034604" src="https://github.com/user-attachments/assets/bc4aa118-2640-4a27-b63c-1db77cbc71d3" />
-<img width="1607" height="906" alt="image" src="https://github.com/user-attachments/assets/82355334-e7cb-4a70-b548-105ae23c8b35" />
-<img width="1919" height="876" alt="image" src="https://github.com/user-attachments/assets/e476b773-4870-444a-a72a-d8927da5055a" />
-<img width="1606" height="888" alt="image" src="https://github.com/user-attachments/assets/3e07a183-6bd6-4771-9c8d-771026ff134a" />
+
 
 
 
