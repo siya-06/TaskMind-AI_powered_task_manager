@@ -19,3 +19,11 @@ export const queryVectorDB = async (query, userId) => {
         return [];
     }
 };
+
+export const deleteTaskFromVectorDB = async (text, userId) => {
+    try {
+        await axios.delete(`${AI_BASE}/delete`, { data: { text, userId } });
+    } catch (err) {
+        console.error("Vector DB Delete Error:", err.message);
+    }
+};

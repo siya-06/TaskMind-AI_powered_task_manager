@@ -33,21 +33,26 @@ Provide a helpful, conversational, and direct response. If they ask about their 
     }
 };
 
-export async function categorizeTask(task, userId) {
+export async function categorizeTask(taskText, userId) {
     try {
-        const tasks = await queryVectorDB(task, userId);
+        const prompt = `You are an AI that categorizes tasks. Categorize the following task into exactly one of these categories: Work, Study, Personal, Health, Finance, General.
+Respond with ONLY the category name. Do not add any punctuation or extra text.
+Task: "${taskText}"`;
 
-        if (!tasks || tasks.length === 0) {
-            return "General";
+        const chatCompletion = await groq.chat.completions.create({
+            messages: [{ role: 'user', content: prompt }],
+            model: 'llama-3.1-8b-instant',
+            temperature: 0.1,
+        });
+
+        let category = chatCompletion.choices[0]?.message?.content?.trim() || "General";
+        
+        const validCategories = ["Work", "Study", "Personal", "Health", "Finance", "General"];
+        if (!validCategories.includes(category)) {
+            category = validCategories.find(c => category.includes(c)) || "General";
         }
 
-        const similarText = tasks[0].text.toLowerCase();
-
-        if (similarText.includes("study")) return "Study";
-        if (similarText.includes("project")) return "Work";
-        if (similarText.includes("buy")) return "Personal";
-
-        return "General";
+        return category;
     } catch (err) {
         console.error("categorizeTask error:", err);
         return "General";

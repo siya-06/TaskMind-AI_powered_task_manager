@@ -1,6 +1,5 @@
 import express from 'express';
-import { addTaskToVectorDB } from "../services/embedding.service.js";
-import { categorizeTask, suggestTasks } from "../services/ai.service.js";
+import { addTaskToVectorDB, deleteTaskFromVectorDB } from "../services/embedding.service.js";
 import prisma from '../prismaClient.js';
 
 const router = express.Router();
@@ -74,12 +73,26 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
+    const taskToDelete = await prisma.todo.findFirst({
+      where: {
+        id: parseInt(id),
+        userid: req.userid
+      }
+    });
+
+    if (!taskToDelete) {
+      return res.status(404).json({ error: "Todo not found" });
+    }
+
     await prisma.todo.deleteMany({
       where: {
         id: parseInt(id),
         userid: req.userid
       }
     });
+
+    // Delete from FAISS vector store
+    await deleteTaskFromVectorDB(taskToDelete.task, req.userid);
 
     res.json({ message: "Todo deleted" });
   } catch (err) {
@@ -88,37 +101,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// ================= AI ROUTES =================
-
-// 🔹 Categorize task
-router.post("/ai/categorize", async (req, res) => {
-  try {
-    const { task } = req.body;
-
-    const tag = await categorizeTask(task, req.userid);
-
-    res.json({ tag });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "AI categorization failed" });
-  }
-});
-
-// 🔹 Suggest tasks (based on user history)
-router.get("/ai/suggest", async (req, res) => {
-  try {
-    const userTasks = await prisma.todo.findMany({
-      where: { userid: req.userid },
-      orderBy: { id: "asc" }
-    });
-
-    const suggestions = await suggestTasks(userTasks, req.userid);
-
-    res.json({ suggestions });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "AI suggestions failed" });
-  }
-});
+// ================= AI ROUTES MOVED =================
+// AI routes have been moved to src/routes/airoutes.js
 
 export default router;
