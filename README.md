@@ -34,19 +34,11 @@ All stitched together using a microservice-style architecture.
 
 > <img width="1917" height="898" alt="image" src="https://github.com/user-attachments/assets/d6b54fd8-9e0e-4939-b641-d2cc528a27c7" />
 
-```txt
-[ PLACEHOLDER — MAIN DASHBOARD SCREENSHOT ]
-```
-
 ---
 
 ## AI Chat Interface
 
 > <img width="474" height="878" alt="image" src="https://github.com/user-attachments/assets/d54d5bfb-a726-45df-8f72-22834c97ba1a" />
-
-```txt
-[ PLACEHOLDER — AI CHAT SCREENSHOT ]
-```
 
 ---
 
@@ -54,19 +46,11 @@ All stitched together using a microservice-style architecture.
 
 > <img width="1094" height="199" alt="image" src="https://github.com/user-attachments/assets/e1c7e041-47ff-4a4f-a508-34b77e4edf91" />
 
-```txt
-[ PLACEHOLDER — AI SUGGESTIONS SCREENSHOT ]
-```
-
 ---
 
 ## Calendar 
 
 > <img width="1543" height="879" alt="image" src="https://github.com/user-attachments/assets/03dd5d6c-21e5-4742-952e-205ec9dc2cd5" />
-
-```txt
-[ PLACEHOLDER — AI SUGGESTIONS SCREENSHOT ]
-```
 
 ---
 
@@ -74,9 +58,11 @@ All stitched together using a microservice-style architecture.
 
 > <img width="1451" height="907" alt="image" src="https://github.com/user-attachments/assets/7ae94129-e328-4e38-b8e1-63c7269586f2" />
 
-```txt
-[ PLACEHOLDER — AI SUGGESTIONS SCREENSHOT ]
-```
+---
+
+## Dark Mode
+
+> <img width="1919" height="897" alt="image" src="https://github.com/user-attachments/assets/f51bd765-ac3e-4f84-b30f-db88f5974928" />
 
 ---
 
