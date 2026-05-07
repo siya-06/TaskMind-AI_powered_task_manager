@@ -186,11 +186,11 @@ if (logoutBtn) {
 // ================= TODOS =================
 async function fetchTodos() {
   tasksLoading.classList.remove('hidden');
-  tasksList.innerHTML = '';
-
   try {
     const todos = await apiCall('/todos');
+    window.currentTodos = todos;
     renderTodos(todos);
+    updateAnalytics(todos);
   } catch (err) {
     console.error("Fetch todos error:", err);
   } finally {
@@ -259,12 +259,12 @@ function renderCalendar() {
   const calendarEl = document.getElementById('calendar');
   if (!calendarEl) return;
 
-  const events = todos
+  const events = (window.currentTodos || [])
     .filter(t => t.dueDate)
     .map(t => ({
       id: t.id.toString(),
       title: t.task,
-      start: t.dueDate,
+      start: t.dueDate.split('T')[0],
       allDay: true,
       color: t.completed ? '#10b981' : 'var(--accent)'
     }));
@@ -274,7 +274,7 @@ function renderCalendar() {
       initialView: 'dayGridMonth',
       events: events,
       headerToolbar: { left: 'prev,next', center: 'title', right: 'today' },
-      height: '100%',
+      height: 'auto',
       eventClick: function(info) {
         if(confirm("Mark this task as completed?")) {
            toggleTask(parseInt(info.event.id), true);
