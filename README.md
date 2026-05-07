@@ -127,15 +127,8 @@ Honestly Prisma made database management WAY less painful.
 
 ---
 
-## 🧾 PostgreSQL / SQLite
-
-The project supports relational DB storage for:
-
-- users
-- tasks
-- task metadata
-
-Initially designed around PostgreSQL, but SQLite was later used during development/testing for faster local setup.
+## 🛢️ Database
+PostgreSQL (via Prisma ORM)
 
 ---
 
