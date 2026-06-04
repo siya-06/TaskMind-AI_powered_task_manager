@@ -1,4 +1,4 @@
-const API_URL = 'http://127.0.0.1:5003';
+const API_URL = window.location.origin.includes('5500') ? 'http://127.0.0.1:5003' : '';
 
 // ================= DOM ELEMENTS =================
 const authOverlay = document.getElementById('auth-overlay');
@@ -346,7 +346,7 @@ async function categorizeTask(id, taskText) {
   }
 
   try {
-    const res = await apiCall('/todos/ai/categorize', 'POST', {
+    const res = await apiCall('/api/ai/categorize', 'POST', {
       task: taskText
     });
 
@@ -361,7 +361,7 @@ async function categorizeTask(id, taskText) {
 // Suggestions
 aiSuggestBtn.addEventListener('click', async () => {
   try {
-    const res = await apiCall('/todos/ai/suggest');
+    const res = await apiCall('/api/ai/suggest');
     renderSuggestions(res.suggestions || []);
   } catch {
     alert("AI failed");

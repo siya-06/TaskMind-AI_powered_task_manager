@@ -1,0 +1,32 @@
+services:
+  # 1. AI Microservice (Python FastAPI)
+  - type: web
+    name: taskmind-ai-service
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn app:app --host 0.0.0.0 --port $PORT
+    rootDir: ai-service
+    plan: free
+    envVars:
+      - key: FAISS_INDEX_DIR
+        value: faiss_index
+
+  # 2. Primary Backend (Node.js/Express)
+  - type: web
+    name: taskmind-backend
+    env: docker
+    dockerfilePath: Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false  # Render will prompt you to enter your Neon database URL
+      - key: JWT_SECRET
+        sync: false  # Render will prompt you to enter your JWT secret
+      - key: GROQ_API_KEY
+        sync: false  # Render will prompt you to enter your Groq API key
+      - key: AI_SERVICE_URL
+        fromService:
+          name: taskmind-ai-service
+          type: web
+          property: url

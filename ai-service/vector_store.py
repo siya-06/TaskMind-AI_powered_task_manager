@@ -4,7 +4,7 @@ import pickle
 import os
 
 dimension = 384
-INDEX_DIR = "faiss_index"
+INDEX_DIR = os.getenv("FAISS_INDEX_DIR", "faiss_index")
 
 if not os.path.exists(INDEX_DIR):
     os.makedirs(INDEX_DIR)

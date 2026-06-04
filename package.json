@@ -11,7 +11,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "a dockerised fullstack todo app using nodejs backend, postgreSQL database, a prisma orm and jwt authentication",
+  "description": "AI-Powered Semantic Task Manager",
   "dependencies": {
     "@prisma/client": "^6.9.0",
     "axios": "^1.16.0",

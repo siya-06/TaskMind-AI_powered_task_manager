@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const AI_BASE = "http://127.0.0.1:8000";
+const AI_BASE = process.env.AI_SERVICE_URL || "http://127.0.0.1:8000";
 
 export const addTaskToVectorDB = async (data) => {
     try {

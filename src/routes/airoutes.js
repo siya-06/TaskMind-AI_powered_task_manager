@@ -4,7 +4,7 @@ import prisma from '../prismaClient.js';
 
 const router = express.Router();
 
-router.post("/ask", async (req, res) => {
+router.post(["/ask", "/query"], async (req, res) => {
     const { query } = req.body;
     const userId = req.userid;
 

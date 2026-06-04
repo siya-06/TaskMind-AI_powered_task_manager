@@ -8,10 +8,13 @@ WORKDIR /app
 COPY package*.json .
 
 #install the dependencies 
-RUN np m install
+RUN npm install
 
 #copy the rest of the application code
 COPY . .
+
+#generate prisma client
+RUN npx prisma generate
 
 #expose the port that the app runs on
 EXPOSE 5003
