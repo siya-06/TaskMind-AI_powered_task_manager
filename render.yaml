@@ -26,7 +26,4 @@ services:
       - key: GROQ_API_KEY
         sync: false  # Render will prompt you to enter your Groq API key
       - key: AI_SERVICE_URL
-        fromService:
-          name: taskmind-ai-service
-          type: web
-          property: url
+        value: http://taskmind-ai-service:10000
