@@ -1,5 +1,5 @@
-fastapi
-uvicorn
-numpy
-openai
-sentence-transformers
+fastapi==0.115.0
+uvicorn==0.30.6
+numpy==1.26.4
+sentence-transformers==2.7.0
+transformers==4.41.2
